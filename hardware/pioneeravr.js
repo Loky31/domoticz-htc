@@ -159,6 +159,7 @@ Pioneer.prototype.power4zone = function(on) {
     	}
     	if (on) {				// Send this twice per manual.
         	this.client.write("ZEO\r");
+            this.client.write("ZEO\r");
     	}
     	else {
         this.client.write("ZEF\r");
