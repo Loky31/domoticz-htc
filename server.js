@@ -49,10 +49,12 @@ if (switches.tuner)	options.idx.push(switches.tuner);
 var	TRACE		= true;;
 var	POWER		= false;
 var	Z2POWER		= false;
+var	Z4POWER		= false;
 var	MUTE		= false;
 var	Z2MUTE		= false;
 var	INPUT		= false;
 var	Z2INPUT		= false;
+var	Z4INPUT		= false;
 var	MODE		= false;
 var	VOLUME		= false;
 var	Z2VOLUME	= false;
@@ -198,6 +200,18 @@ domoticz.on('data', function(data) {
 			if (switches.z2volume)	domoticz.switch(switches.z2volume,0);
 		}
 	}
+    // Zone 4 Input Selector Switch
+	if (data.idx === switches.zone4) {
+		level = parseInt(data.svalue1)
+		if ((level) && (zoneInputs[level]) && (zoneInputs[level][0] !== Z4INPUT)) {
+			if (TRACE) { console.log("DOMO: Zone 2 " + zoneInputs[level][0]) }
+			if (!Z4POWER) receiver.power4zone(true);
+			receiver.selectInput4zone(zoneInputs[level][0])
+		} else if ((!level) && (Z4POWER)) {
+			receiver.power4zone(false)
+			domoticz.switch(switches.zone4,0)
+		}
+	}
 	if (TRACE) {
 	        message = JSON.stringify(data)
 	        console.log("DOMO: " + message.toString())
@@ -254,7 +268,19 @@ receiver.on('powerZone2', function(pwr) {
 		if (switches.z2volume) 	receiver.queryVolume2zone();
 	}
 });
-
+// receiver: power zone 4
+receiver.on('powerZone4', function(pwr) {
+	Z4POWER = pwr
+	if (TRACE) 			console.log("POWER Z4: " + pwr);
+	if (!pwr) {
+		Z4INPUT = false
+		domoticz.log("[HTC] Zone 4: OFF")
+		if (switches.zone4)	domoticz.switch(switches.zone4,0);
+	} else {
+		domoticz.log("[HTC] Zone 4: ON")
+		if (switches.zone2)	receiver.query4input();
+	}
+});
 
 // receiver: volume
 receiver.on('volume', function(val) {
@@ -330,6 +356,22 @@ receiver.on('inputZone2', function(input,inputName) {
 		});
 	}
 });
+// receiver: input zone 4
+receiver.on('inputZone4', function(input,inputName) {
+	if (TRACE) 			console.log("INPUT Z4: " + input);
+	if (POWER) {
+		Z4INPUT = parseInt(input)
+		if ((switches.tuner) && (Z4INPUT === 2) && (!FREQUENCY))	receiver.queryTuner();;
+		var i = Object.keys(zoneInputs);
+		i.forEach(function(id){
+			if (input === zoneInputs[id][0]) {
+				domoticz.switch(switches.zone4,id)
+				domoticz.log("[HTC] Zone4 input changed to " + zoneInputs[id][1])
+			}
+		});
+	}
+});
+
 
 // receiver: tuner frequency
 receiver.on('frequency', function(fm) {
